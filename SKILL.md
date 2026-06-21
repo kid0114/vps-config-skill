@@ -1,3 +1,8 @@
+---
+name: vps-config
+description: Use when setting up or hardening a VPS with SSH key login, WireGuard, and security hardening steps.
+---
+
 # VPS Config Skill
 
 ## 用途
