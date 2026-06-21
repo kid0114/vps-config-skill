@@ -33,7 +33,7 @@
 - `<ALIAS>`: SSH 别名（如 `vps_jp2`），密钥自动命名为 `~/.ssh/id_ed25519_jp2`
 - `<CLIENT_PUB>`: 客户端 WireGuard 公钥
 - `<CLIENT_PRIV>`: 客户端 WireGuard 私钥
-- `<LISTEN_PORT>`: WireGuard 监听端口（默认 445）
+- `<LISTEN_PORT>`: WireGuard 监听端口（自定义）
 
 ## 工作流程
 1. **第一步**：根据别名自动推导密钥路径 → 不存在则生成 → 上传密钥 → 测试登录 → 写入 `~/.ssh/config`

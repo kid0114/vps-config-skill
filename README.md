@@ -33,7 +33,7 @@ A **3-step automation skill** for configuring new VPS servers with SSH key authe
 - `<ALIAS>`: SSH host alias (e.g., `vps_jp2`), key auto-named as `~/.ssh/id_ed25519_jp2`
 - `<CLIENT_PUB>`: Client WireGuard public key
 - `<CLIENT_PRIV>`: Client WireGuard private key
-- `<LISTEN_PORT>`: WireGuard listen port (default: 445)
+- `<LISTEN_PORT>`: WireGuard listen port (custom)
 
 ## How It Works
 1. **Step 1**: Auto-derives SSH key from alias → generates if missing → uploads key → tests login → writes `~/.ssh/config`
