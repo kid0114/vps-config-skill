@@ -3,10 +3,17 @@
 set -e
 
 IP=$1; PORT=$2; PASS=$3
-KEY=~/.ssh/id_ed25519_jp2
-ALIAS="vps_$(echo $IP | tr '.' '_')"
+ALIAS=$4
+KEY=~/.ssh/id_ed25519_${ALIAS#vps_}
 
 echo "=== Step 1: SSH Setup ==="
+echo "  Alias: ${ALIAS}"
+echo "  Key: ${KEY}"
+
+if [ ! -f "${KEY}.pub" ]; then
+  echo "  -> Key not found, generating..."
+  ssh-keygen -t ed25519 -f "${KEY}" -N "" -C "vps@${ALIAS}"
+fi
 
 # 1a. 上传公钥
 echo "[1a] Uploading SSH key..."
