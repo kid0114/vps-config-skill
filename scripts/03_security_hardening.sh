@@ -13,11 +13,11 @@ echo "  ✅ Key auth confirmed"
 
 # 3b. 关闭密码登录
 echo "[3b] Disabling password authentication..."
-ssh ${ALIAS} "sed -i 's/^PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config"
+ssh ${ALIAS} "sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config"
 
 # 3c. 设置 PermitRootLogin prohibit-password
 echo "[3c] Setting PermitRootLogin prohibit-password..."
-ssh ${ALIAS} "sed -i 's/^PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config"
+ssh ${ALIAS} "sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config"
 
 # 3d. 重启 sshd
 echo "[3d] Restarting sshd..."

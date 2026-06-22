@@ -2,7 +2,7 @@
 # Step 2: WireGuard 安装 + 配置
 set -e
 
-ALIAS=$1; CLIENT_PUB=$2; CLIENT_PRIV=$3
+ALIAS=$1; CLIENT_PUB=$2; CLIENT_PRIV=$3; LISTEN_PORT=${4:-51820}
 
 echo "=== Step 2: WireGuard Setup ==="
 
@@ -17,15 +17,15 @@ IFACE=$(ssh ${ALIAS} "ip -4 route show default | awk '{print \$5}'")
 echo "  ✅ Interface: ${IFACE}"
 
 # 2c. 生成密钥 + 写 wg0.conf
-echo "[2c] Configuring WireGuard..."
-ssh ${ALIAS} bash -s "${IFACE}" "${CLIENT_PUB}" << 'EOF'
-IFACE=$1; CLIENT_PUB=$2
+echo "[2c] Configuring WireGuard (ListenPort: ${LISTEN_PORT})..."
+ssh ${ALIAS} bash -s "${IFACE}" "${CLIENT_PUB}" "${LISTEN_PORT}" << 'EOF'
+IFACE=$1; CLIENT_PUB=$2; LISTEN_PORT=$3
 wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey
 cat > /etc/wireguard/wg0.conf << WGEOF
 [Interface]
 PrivateKey = $(cat /etc/wireguard/privatekey)
 Address = 10.0.0.1/24, fd42:42:42::1/64
-ListenPort = 445
+ListenPort = ${LISTEN_PORT}
 
 PostUp = sysctl -w net.ipv4.ip_forward=1
 PostUp = iptables -A FORWARD -i %i -o ${IFACE} -j ACCEPT
@@ -80,7 +80,7 @@ MTU = 1380
 [Peer]
 PublicKey = ${SERVER_PUB}
 AllowedIPs = 0.0.0.0/0, ::/0
-Endpoint = ${SERVER_IP}:${SERVER_PORT}
+Endpoint = ${SERVER_IP}:${LISTEN_PORT}
 PersistentKeepalive = 28
 CLIENTEOF
 
