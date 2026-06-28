@@ -66,3 +66,4 @@ description: Use when setting up or hardening a VPS with SSH key login, WireGuar
 - 所有敏感信息均为参数传入，无硬编码
 - 密钥路径根据 alias 自动推导
 - 监听端口可自定义
+- VPS 无 IPv6 时，客户端配置不要加 `::/0`（IPv6 全隧道），否则 IPv6 流量进隧道后到不了服务端会丢包
