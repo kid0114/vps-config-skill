@@ -4,6 +4,16 @@ set -e
 
 ALIAS=$1; CLIENT_PUB=$2; CLIENT_PRIV=$3; LISTEN_PORT=${4:-51820}
 
+# WireGuard 内网地址可按节点弹性调整，避免和已有 LAN / Docker / 其他 WG 网段冲突。
+# 默认保持旧行为；例如 vps-sg 可用：
+#   WG_SERVER_IPV4_CIDR=10.3.0.1/24 WG_CLIENT_IPV4_CIDR=10.3.0.2/24 ./02_wg_install.sh ...
+WG_SERVER_IPV4_CIDR="${WG_SERVER_IPV4_CIDR:-10.0.0.1/24}"
+WG_CLIENT_IPV4_CIDR="${WG_CLIENT_IPV4_CIDR:-10.0.0.2/24}"
+WG_CLIENT_ALLOWED_IPV4="${WG_CLIENT_ALLOWED_IPV4:-${WG_CLIENT_IPV4_CIDR%/*}/32}"
+WG_SERVER_IPV6_CIDR="${WG_SERVER_IPV6_CIDR:-fd42:42:42::1/64}"
+WG_CLIENT_IPV6_CIDR="${WG_CLIENT_IPV6_CIDR:-fd42:42:42::2/64}"
+WG_CLIENT_ALLOWED_IPV6="${WG_CLIENT_ALLOWED_IPV6:-${WG_CLIENT_IPV6_CIDR%/*}/128}"
+
 echo "=== Step 2: WireGuard Setup ==="
 
 # 2a. 安装依赖（含 wg-quick）
@@ -18,13 +28,28 @@ echo "  ✅ Interface: ${IFACE}"
 
 # 2c. 生成密钥 + 写 wg0.conf
 echo "[2c] Configuring WireGuard (ListenPort: ${LISTEN_PORT})..."
-ssh ${ALIAS} bash -s "${IFACE}" "${CLIENT_PUB}" "${LISTEN_PORT}" << 'EOF'
-IFACE=$1; CLIENT_PUB=$2; LISTEN_PORT=$3
+echo "  WG server address: ${WG_SERVER_IPV4_CIDR}, ${WG_SERVER_IPV6_CIDR}"
+echo "  WG client address: ${WG_CLIENT_IPV4_CIDR}, ${WG_CLIENT_IPV6_CIDR}"
+ssh ${ALIAS} bash -s \
+  "${IFACE}" \
+  "${CLIENT_PUB}" \
+  "${LISTEN_PORT}" \
+  "${WG_SERVER_IPV4_CIDR}" \
+  "${WG_SERVER_IPV6_CIDR}" \
+  "${WG_CLIENT_ALLOWED_IPV4}" \
+  "${WG_CLIENT_ALLOWED_IPV6}" << 'EOF'
+IFACE=$1
+CLIENT_PUB=$2
+LISTEN_PORT=$3
+WG_SERVER_IPV4_CIDR=$4
+WG_SERVER_IPV6_CIDR=$5
+WG_CLIENT_ALLOWED_IPV4=$6
+WG_CLIENT_ALLOWED_IPV6=$7
 wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey
 cat > /etc/wireguard/wg0.conf << WGEOF
 [Interface]
 PrivateKey = $(cat /etc/wireguard/privatekey)
-Address = 10.0.0.1/24, fd42:42:42::1/64
+Address = ${WG_SERVER_IPV4_CIDR}, ${WG_SERVER_IPV6_CIDR}
 ListenPort = ${LISTEN_PORT}
 
 PostUp = sysctl -w net.ipv4.ip_forward=1
@@ -35,6 +60,7 @@ PostDown = iptables -D FORWARD -i %i -o ${IFACE} -j ACCEPT
 PostDown = iptables -D FORWARD -i ${IFACE} -o %i -m state --state RELATED,ESTABLISHED -j ACCEPT
 PostDown = iptables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE
 
+PostUp = sysctl -w net.ipv6.conf.wg0.disable_ipv6=0
 PostUp = sysctl -w net.ipv6.conf.all.forwarding=1
 PostUp = ip6tables -A FORWARD -i %i -o ${IFACE} -j ACCEPT
 PostUp = ip6tables -A FORWARD -i ${IFACE} -o %i -m state --state RELATED,ESTABLISHED -j ACCEPT
@@ -45,7 +71,7 @@ PostDown = ip6tables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE
 
 [Peer]
 PublicKey = ${CLIENT_PUB}
-AllowedIPs = 10.0.0.2/32, fd42:42:42::2/128
+AllowedIPs = ${WG_CLIENT_ALLOWED_IPV4}, ${WG_CLIENT_ALLOWED_IPV6}
 WGEOF
 echo "wg0.conf written"
 EOF
@@ -73,7 +99,7 @@ cat << CLIENTEOF
 === Client Configuration (copy to your device) ===
 [Interface]
 PrivateKey = ${CLIENT_PRIV}
-Address = 10.0.0.2/24, fd42:42:42::2/64
+Address = ${WG_CLIENT_IPV4_CIDR}, ${WG_CLIENT_IPV6_CIDR}
 DNS = 1.1.1.1, 2606:4700:4700::1111
 MTU = 1380
 

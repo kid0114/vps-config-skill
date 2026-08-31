@@ -21,6 +21,11 @@ description: Use when setting up or hardening a VPS with SSH key login, WireGuar
 # Step 2: WireGuard 配置（别名、客户端公钥、客户端私钥、监听端口）
 ~/.codex/skills/vps-config/scripts/02_wg_install.sh <ALIAS> <CLIENT_PUB> <CLIENT_PRIV> <LISTEN_PORT>
 
+# 可选：指定 WireGuard 内网地址，避免和已有 LAN / Docker / 其他 WG 网段冲突
+WG_SERVER_IPV4_CIDR=10.3.0.1/24 \
+WG_CLIENT_IPV4_CIDR=10.3.0.2/24 \
+~/.codex/skills/vps-config/scripts/02_wg_install.sh <ALIAS> <CLIENT_PUB> <CLIENT_PRIV> <LISTEN_PORT>
+
 # Step 3: 安全加固（别名）
 ~/.codex/skills/vps-config/scripts/03_security_hardening.sh <ALIAS>
 ```
@@ -33,6 +38,15 @@ description: Use when setting up or hardening a VPS with SSH key login, WireGuar
 - `<CLIENT_PUB>`: 客户端 WireGuard 公钥
 - `<CLIENT_PRIV>`: 客户端 WireGuard 私钥
 - `<LISTEN_PORT>`: WireGuard 监听端口（自定义）
+
+### Step 2 可选环境变量
+
+- `WG_SERVER_IPV4_CIDR`: 服务端 IPv4 内网地址，默认 `10.0.0.1/24`
+- `WG_CLIENT_IPV4_CIDR`: 客户端 IPv4 内网地址，默认 `10.0.0.2/24`
+- `WG_CLIENT_ALLOWED_IPV4`: 服务端 peer AllowedIPs 的客户端 IPv4，默认从 `WG_CLIENT_IPV4_CIDR` 推导为 `/32`
+- `WG_SERVER_IPV6_CIDR`: 服务端 IPv6 内网地址，默认 `fd42:42:42::1/64`
+- `WG_CLIENT_IPV6_CIDR`: 客户端 IPv6 内网地址，默认 `fd42:42:42::2/64`
+- `WG_CLIENT_ALLOWED_IPV6`: 服务端 peer AllowedIPs 的客户端 IPv6，默认从 `WG_CLIENT_IPV6_CIDR` 推导为 `/128`
 
 ## 分步说明
 
@@ -49,6 +63,8 @@ description: Use when setting up or hardening a VPS with SSH key login, WireGuar
 - 安装 wireguard + wireguard-tools + iptables
 - 动态检测网卡
 - 生成服务端密钥 + 写 wg0.conf（使用传入的客户端公钥和监听端口）
+- WireGuard 内网地址默认使用 `10.0.0.0/24`，但可通过环境变量弹性覆盖；新节点要先避开本地 LAN、旁路由、Docker 和已有 WG 网段
+- IPv6 启用时写入 `net.ipv6.conf.wg0.disable_ipv6=0` 和 `net.ipv6.conf.all.forwarding=1`
 - 启动 wg-quick
 - 检查握手状态
 - 生成客户端配置（使用传入的客户端私钥和监听端口）
